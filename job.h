@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <stdatomic.h>
 
 #define MAX_THREADS 4
 #define MAX_JOBS 256
@@ -29,6 +30,7 @@ typedef struct {
 typedef struct {
     pthread_t threads[MAX_THREADS];
     job_queue_t queue;
+    atomic_bool stop;
 } thread_pool_t;
 
 #ifndef prefetch
@@ -76,8 +78,9 @@ static inline job_t queue_pop(job_queue_t *q) {
 }
 
 static void *worker_fn(void *arg) {
-    job_queue_t *q = (job_queue_t *)arg;
-    while (1) {
+    thread_pool_t *pool = (thread_pool_t *)arg;
+    job_queue_t *q = &pool->queue;
+    while (!atomic_load(&pool->stop)) {
         job_t job = queue_pop(q);
         if (job.fn != NULL) {
             job.fn(job.data);
@@ -88,13 +91,33 @@ static void *worker_fn(void *arg) {
 
 static inline void pool_init(thread_pool_t *p) {
     queue_init(&p->queue);
+    atomic_store(&p->stop, false);
     for (int i = 0; i < MAX_THREADS; i++) {
-        pthread_create(&p->threads[i], NULL, worker_fn, &p->queue);
+        pthread_create(&p->threads[i], NULL, worker_fn, p);
     }
 }
 
 static inline int pool_submit(thread_pool_t *p, job_fn fn, void *data) {
     return queue_push(&p->queue, fn, data);
+}
+
+static inline void pool_shutdown(thread_pool_t *p) {
+    atomic_store(&p->stop, true);
+    for (int i = 0; i < MAX_THREADS; i++) {
+        pthread_cond_broadcast(&p->queue.cond);
+    }
+    for (int i = 0; i < MAX_THREADS; i++) {
+        pthread_join(p->threads[i], NULL);
+    }
+    pthread_mutex_destroy(&p->queue.mutex);
+    pthread_cond_destroy(&p->queue.cond);
+}
+
+static inline int queue_size(job_queue_t *q) {
+    pthread_mutex_lock(&q->mutex);
+    int size = q->count;
+    pthread_mutex_unlock(&q->mutex);
+    return size;
 }
 
 #endif // JOB_H

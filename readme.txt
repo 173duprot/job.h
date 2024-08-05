@@ -6,7 +6,7 @@ NAME
 DESCRIPTION
     job.h provides a simple, high-performance
     Job Queue and Thread Pool framework in only
-    100 lines of code.
+    123 lines of code.
 
     It's tiny, cache-friendly, static, opinionated
     design targets multi-thread high-performance,
@@ -14,10 +14,11 @@ DESCRIPTION
 
     It allows the following:
 
-        Job submission and execution,
-        Thread pool initialization,
-        Job queue management,
-        and Worker thread management.
+    Job submission and execution,
+    Thread pool initialization,
+    Job queue management,
+    Worker thread management,
+    and Graceful thread pool shutdown.
 
 SYNOPSIS
     #include "job.h"
@@ -41,6 +42,7 @@ SYNOPSIS
     typedef struct {
         pthread_t threads[MAX_THREADS];
         job_queue_t queue;
+        atomic_bool stop;
     } thread_pool_t;
 
     void queue_init(job_queue_t *q);
@@ -48,6 +50,8 @@ SYNOPSIS
     job_t queue_pop(job_queue_t *q);
     void pool_init(thread_pool_t *p);
     int pool_submit(thread_pool_t *p, job_fn fn, void *data);
+    void pool_shutdown(thread_pool_t *p);
+    int queue_size(job_queue_t *q);
 
 FUNCTIONS
     void queue_init(job_queue_t *q)
@@ -69,6 +73,13 @@ FUNCTIONS
     int pool_submit(thread_pool_t *p, job_fn fn, void *data)
         Submits a job to the thread pool. Returns 0 on 
         success or -1 on failure.
+
+    void pool_shutdown(thread_pool_t *p)
+        Gracefully shuts down the thread pool, ensuring all 
+        jobs are completed before terminating the threads.
+
+    int queue_size(job_queue_t *q)
+        Returns the current number of jobs in the queue.
 
 CONSTANTS
     MAX_THREADS
