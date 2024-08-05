@@ -6,7 +6,7 @@ NAME
 DESCRIPTION
     job.h provides a simple, high-performance
     Job Queue and Thread Pool framework in only
-    94 lines of code.
+    100 lines of code.
 
     It's tiny, cache-friendly, static, opinionated
     design targets multi-thread high-performance,
@@ -14,10 +14,10 @@ DESCRIPTION
 
     It allows the following:
 
-    Job submission and execution,
-    Thread pool initialization,
-    Job queue management,
-    and Worker thread management.
+        Job submission and execution,
+        Thread pool initialization,
+        Job queue management,
+        and Worker thread management.
 
 SYNOPSIS
     #include "job.h"
